@@ -12,19 +12,20 @@ function App() {
     const [iFrequency, setIFrequency] = useState("")
     const [cAmplitude, setCAmplitude] = useState("")
     const [iAmplitude, setIAmplitude] = useState("")
-    const [k, setK] = useState("")
 
     const cFreq = Number.parseFloat(cFrequency)
     const iFreq = Number.parseFloat(iFrequency)
     const cAmp = Number.parseFloat(cAmplitude)
-    const iAmp = Number.parseFloat(iAmplitude)
-    const f = Number.parseFloat(k)
+    const iAmp = Number.parseFloat(iAmplitude) * Math.PI / 6
 
     if (iAmp <= 0 || cAmp <= 0 || cFreq <= 0 || iFreq <= 0)
         alert("Amplitude and frequency must be greater than 0")
 
-    if (f <= 0 || f > 1)
-        alert("Modulation factor must be greater than 0 and lower or equal to 1")
+    if (iFreq >= cFreq)
+        alert("Carrier freq must be greater than information freq")
+
+    if (iAmp > cAmp)
+        alert("Information amplitude can't be greater than information amp")
 
     const signalC: Point[] = []
     const signalM: Point[] = []
@@ -32,104 +33,91 @@ function App() {
     const rangeC: Point[] = []
     const rangeM: Point[] = []
     const rangeI: Point[] = []
-    let flag0 = true
-    let flagNeg = true
-    let flagPos = true
-    let flag01 = true
-    let flagNeg1 = true
-    let flagPos1 = true
 
-    for (let t = 0; t < 1; t += 0.001) {
+    const k= iAmp / cAmp;
+    const T = 2 * Math.PI / (2 * Math.PI * Math.min(cFreq, iFreq))
+
+    for (let t = 0; t < 2 * T; t += 0.001) {
         const cy = cAmp * Math.cos(2 * Math.PI * cFreq * t)
         const iy = iAmp * Math.cos(2 * Math.PI * iFreq * t)
-        const my = cy * (1 + f * cy / cAmp)
+        const my = cy * (1 + k * Math.cos(2 * Math.PI * iFreq * t))
 
         signalM.push({x: t, y: my})
         signalI.push({x: t, y: iy})
         signalC.push({x: t, y: cy})
     }
 
-    for (let freq = -cFreq - 10; freq < cFreq + 10; freq += 0.01) {
-        if (freq != 0 && Math.abs(freq) != cFreq) {
-            rangeC.push({x: freq, y: 0})
-        }
 
-        if (freq + 0.01 >= 0 && flag0) {
-            flag0 = false
-            rangeC.push({x: 0, y: cAmp})
-        }
+    // crange //
+    for (let i = -10; i < -cFreq; i += 0.01)
+        rangeC.push({x: i, y: 0})
 
-        if (freq + 0.01 >= -cFreq && flagNeg) {
-            flagNeg = false
-            rangeC.push({x: -cFreq, y: cAmp / 2})
-        }
-
-        if (freq + 0.01 >= cFreq && flagPos) {
-            flagPos = false
-            rangeC.push({x: cFreq, y: cAmp / 2})
-        }
+    for (let i = cAmp; i > 0; i -= 0.01) {
+        rangeC.push({x: -cFreq, y: i})
     }
 
-    flag0 = true
-    flagNeg = true
-    flagPos = true
-
-    for (let freq = -iFreq - 10; freq < iFreq + 10; freq += 0.01) {
-        if (freq != 0 && Math.abs(freq) != iFreq) {
-            rangeI.push({x: freq, y: 0})
-        }
-
-        if (freq + 0.01 >= 0 && flag0) {
-            flag0 = false
-            rangeI.push({x: 0, y: iAmp})
-        }
-
-        if (freq + 0.01 >= -iFreq && flagNeg) {
-            flagNeg = false
-            rangeI.push({x: -iFreq, y: iAmp / 2})
-        }
-
-        if (freq + 0.01 >= iFreq && flagPos) {
-            flagPos = false
-            rangeI.push({x: iFreq, y: iAmp / 2})
-        }
+    for (let i = cAmp; i > 0; i -= 0.01) {
+        rangeC.push({x: cFreq, y: i})
     }
 
-    flag0 = true
-    flagNeg = true
-    flagPos = true
+    for (let i = cFreq; i < 10; i += 0.01)
+        rangeC.push({x: i, y: 0})
 
-    for (let freq = -iFreq - cFreq - 10; freq < iFreq + cFreq + 10; freq += 0.01) {
-        rangeM.push({x: freq, y: 0})
 
-        if (freq + 0.01 >= -iFreq && flag0) {
-            flag0 = false
-            rangeM.push({x: -iFreq, y: iAmp})
-        }
 
-        if (freq + 0.01 >= -iFreq - cFreq && flagNeg) {
-            flagNeg = false
-            rangeM.push({x: -iFreq - cFreq, y: iAmp * f / 2})
-        }
+    // irange //
+    for (let i = -10; i < -iFreq; i += 0.01)
+        rangeI.push({x: i, y: 0})
 
-        if (freq + 0.01 >= -iFreq + cFreq && flagPos) {
-            flagPos = false
-            rangeM.push({x: -iFreq + cFreq, y: f * iAmp / 2})
-        }
-
-        if (freq + 0.01 >= iFreq && flag01) {
-            flag01 = false
-            rangeM.push({x: iFreq, y: iAmp})
-        }
-        if (freq + 0.01 >= iFreq - cFreq && flagNeg1) {
-            flagNeg1 = false
-            rangeM.push({x: iFreq - cFreq, y: iAmp * f / 2})
-        }
-        if (freq + 0.01 >= iFreq + cFreq && flagPos1) {
-            flagPos1 = false
-            rangeM.push({x: iFreq + cFreq, y: iAmp * f / 2})
-        }
+    for (let i = iAmp; i > 0; i -= 0.01) {
+        rangeI.push({x: -iFreq, y: i})
     }
+
+    for (let i = iAmp; i > 0; i -= 0.01) {
+        rangeI.push({x: iFreq, y: i})
+    }
+
+    for (let i = iFreq; i < 10; i += 0.01)
+        rangeI.push({x: i, y: 0})
+
+
+
+    // mrange //
+    for (let i = -10; i < -iFreq - cFreq; i += 0.01)
+        rangeM.push({x: i, y: 0})
+
+    for (let i = iAmp / 2; i > 0; i -= 0.01)
+        rangeM.push({x: -iFreq - cFreq, y: i})
+
+    rangeM.push({x: -cFreq, y: 0})
+    for (let i = cAmp; i > 0; i -= 0.01)
+        rangeM.push({x: -cFreq, y: i})
+
+    rangeM.push({x: iFreq - cFreq, y: 0})
+    for (let i = iAmp / 2; i > 0; i -= 0.01)
+        rangeM.push({x: iFreq - cFreq, y: i})
+
+    rangeM.push({x: cFreq - iFreq, y: 0})
+    for (let i = iAmp / 2; i > 0; i -= 0.01)
+        rangeM.push({x: cFreq - iFreq, y: i})
+
+    rangeM.push({x: cFreq, y: 0})
+    for (let i = cAmp; i > 0; i -= 0.01)
+        rangeM.push({x: cFreq, y: i})
+
+    rangeM.push({x: iFreq + cFreq, y: 0})
+    for (let i = iAmp / 2; i > 0; i -= 0.01)
+        rangeM.push({x: iFreq + cFreq, y: i})
+
+    for (let i = iFreq + cFreq; i < 10; i += 0.01)
+        rangeM.push({x: i, y: 0})
+
+    
+    const cmp = (a: Point, b: Point) => Math.min(a.x, b.x)
+
+    rangeC.sort(cmp)
+    rangeI.sort(cmp)
+    rangeM.sort(cmp)
 
 
     return (
@@ -168,21 +156,13 @@ function App() {
                         onChange={(event) => setIAmplitude(event.target.value)}
                     />
                 </div>
-
-                <div>
-                    <input
-                        placeholder={"Modulation factor"}
-                        value={k}
-                        onChange={(event) => setK(event.target.value)}
-                    />
-                </div>
             </div>
 
             <div className={"plots"}>
                 <div className={"plot1"}>
                     <Plot
                         width={1200}
-                        height={700}
+                        height={300}
                     >
 
                         <Heading
@@ -218,7 +198,7 @@ function App() {
                 <div className={"plot2"}>
                     <Plot
                         width={1200}
-                        height={700}
+                        height={300}
                     >
 
                         <Heading
@@ -246,6 +226,7 @@ function App() {
                             label={"Information signal"}
                             lineStyle={{strokeWidth: 3}}
                             displayMarkers={false}
+
                         />
 
                     </Plot>
@@ -254,7 +235,7 @@ function App() {
                 <div className={"plot3"}>
                     <Plot
                         width={1200}
-                        height={700}
+                        height={300}
                     >
 
                         <Heading
@@ -290,7 +271,7 @@ function App() {
                 <div className={"plot4"}>
                     <Plot
                         width={1200}
-                        height={700}
+                        height={300}
                     >
 
                         <Heading
@@ -326,7 +307,7 @@ function App() {
                 <div className={"plot5"}>
                     <Plot
                         width={1200}
-                        height={700}
+                        height={300}
                     >
 
                         <Heading
@@ -362,7 +343,7 @@ function App() {
                 <div className={"plot6"}>
                     <Plot
                         width={1200}
-                        height={700}
+                        height={300}
                     >
 
                         <Heading
